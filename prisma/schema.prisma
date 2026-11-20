@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  SHOP
+}
+
+enum SizingType {
+  SIZED
+  FREE_SIZE
+}
+
+enum PlacementSide {
+  FRONT
+  BACK
+}
+
+enum OrderType {
+  CUSTOM
+  READY_TO_WEAR
+}
+
+enum PaymentMethod {
+  KBZPAY
+  WAVEPAY
+  COD
+}
+
+enum OrderStatus {
+  PENDING_DEPOSIT
+  DEPOSIT_CONFIRMED
+  IN_PRODUCTION
+  READY_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+type ProductColor {
+  name       String
+  hex        String
+  frontImage String?
+  backImage  String?
+  inStock    Boolean  @default(true)
+}
+
+type SizeChartEntry {
+  size       String
+  shoulder   Float
+  chest      Float
+  length     Float
+  sleeve     Float
+  neckWidth  Float
+}
+
+type CustomerInfo {
+  name            String
+  phone           String
+  city            String?
+  township        String?
+  deliveryAddress String
+  viberOrTelegram String?
+  notes           String?
+}
+
+type SizeQuantity {
+  size     String
+  quantity Int
+}
+
+type OrderPlacement {
+  placementCode           String
+  placementName           String
+  side                    String
+  artworkUrl              String
+  artworkDriveFileId      String?
+  artworkDriveWebViewLink String?
+  widthInches             Float?
+  heightInches            Float?
+  costMmk                 Float
+}
+
+type OrderItem {
+  productId           String
+  productName         String
+  gsm                 Int?
+  fabricType          String?
+  color               String
+  sizeBreakdown       SizeQuantity[]
+  totalQuantity       Int
+  placements          OrderPlacement[]
+  unitGarmentPriceMmk Float
+  unitPrintPriceMmk   Float
+  itemTotalMmk        Float
+}
+
+model User {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  email        String    @unique
+  passwordHash String
+  name         String?
+  role         UserRole  @default(USER)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@map("users")
+}
+
+model Product {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  slug           String           @unique
+  description    String?
+  gsm            Int              // 240, 290, 350
+  fabricType     String           // e.g. 100% Combed Cotton, Air Layer Cotton Blend
+  basePrice      Float            // in MMK
+  sizingType     SizingType       @default(SIZED)
+  isCustomizable Boolean          @default(true)
+  isReadyToWear  Boolean          @default(false)
+  isActive       Boolean          @default(true)
+  colors         ProductColor[]
+  sizeChart      SizeChartEntry[] // in inches (frontend converts to CM if needed)
+  availableSizes String[]         // ["S", "M", "L", "XL", "2XL"] or ["Free Size"]
+  featuredImage  String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+
+  @@map("products")
+}
+
+model PrintPlacement {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  code               String        @unique // full_front, full_back, left_chest, etc.
+  name               String        // Full Front, Left Chest, etc.
+  side               PlacementSide // FRONT or BACK
+  isDefaultShown     Boolean       @default(false) // true for full_front & full_back
+  defaultWidthInches Float
+  defaultHeightInches Float
+  baseCostMmk        Float
+  isActive           Boolean       @default(true)
+  sortOrder          Int           @default(0)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@map("print_placements")
+}
+
+model Order {
+  id                         String         @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber                String         @unique // e.g. ZP-20261120-XXXX
+  orderType                  OrderType      @default(CUSTOM)
+  status                     OrderStatus    @default(PENDING_DEPOSIT)
+  customer                   CustomerInfo
+  items                      OrderItem[]
+  totalAmountMmk             Float
+  depositRequiredMmk         Float          // 1/3 (33%) for CUSTOM, 0 for READY_TO_WEAR COD
+  depositPaidMmk             Float          @default(0)
+  paymentMethod              PaymentMethod  @default(KBZPAY)
+  paymentSlipUrl             String?
+  paymentSlipDriveFileId     String?
+  paymentSlipDriveWebViewLink String?
+  adminNotes                 String?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+
+  @@map("orders")
+}
+
+model StoreSettings {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  depositPercentage     Float    @default(33.33) // ~1/3
+  kbzPayAccountName     String?
+  kbzPayPhone           String?
+  kbzPayQrUrl           String?
+  wavePayAccountName    String?
+  wavePayPhone          String?
+  wavePayQrUrl          String?
+  adminContactPhone     String?
+  adminViberPhone       String?
+  adminTelegramUsername String?
+  telegramBotToken      String?
+  telegramChatId        String?
+  googleDriveFolderId   String?
+  updatedAt             DateTime @updatedAt
+
+  @@map("store_settings")
+}
