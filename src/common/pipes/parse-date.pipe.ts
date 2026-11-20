@@ -1,8 +1,11 @@
-import { Injectable, PipeTransform, BadRequestException } from '@nestjs/common';
+import { PipeTransform, BadRequestException } from '@nestjs/common';
 
-@Injectable()
 export class ParseDatePipe implements PipeTransform<string> {
-  constructor(private readonly valueName: string) {}
+  private readonly valueName: string;
+
+  constructor(valueName: string = 'value') {
+    this.valueName = valueName;
+  }
 
   transform(value: any): any {
     if (value === undefined || value === null) {
@@ -13,11 +16,10 @@ export class ParseDatePipe implements PipeTransform<string> {
 
     if (isNaN(parsedDate.getTime())) {
       throw new BadRequestException(
-        `Invalid ${this.valueName} format, expected a valid date string`,
+        `Invalid ${this.valueName} value, ${this.valueName} must be a valid date`,
       );
     }
 
     return parsedDate;
   }
 }
-

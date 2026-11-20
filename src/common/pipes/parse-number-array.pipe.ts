@@ -1,8 +1,11 @@
-import { Injectable, PipeTransform, BadRequestException } from '@nestjs/common';
+import { PipeTransform, BadRequestException } from '@nestjs/common';
 
-@Injectable()
 export class ParseNumberArrayPipe implements PipeTransform<number[]> {
-  constructor(private readonly valueName: string) {}
+  private readonly valueName: string;
+
+  constructor(valueName: string = 'value') {
+    this.valueName = valueName;
+  }
 
   transform(value: any): any {
     try {
@@ -11,25 +14,21 @@ export class ParseNumberArrayPipe implements PipeTransform<number[]> {
       }
       const parsedValue = Array.isArray(value) ? value : JSON.parse(value);
       if (!Array.isArray(parsedValue)) {
-        throw new Error(`Invalid array format of ${this.valueName}`);
+        throw new Error(
+          `Invalid ${this.valueName} value, ${this.valueName} must be an array of numbers`,
+        );
       }
-
-      if (parsedValue.length === 0) {
-        return parsedValue;
-      }
-
-      const numberArray = parsedValue.map((item: any) => {
-        const parsedNumber = parseFloat(item);
-        if (isNaN(parsedNumber)) {
-          throw new Error(`Invalid number value: ${item} of ${this.valueName}`);
+      return parsedValue.map((item) => {
+        const num = Number(item);
+        if (isNaN(num)) {
+          throw new Error(
+            `Invalid ${this.valueName} value, ${this.valueName} must be an array of numbers`,
+          );
         }
-        return parsedNumber;
+        return num;
       });
-
-      return numberArray;
     } catch (error: any) {
       throw new BadRequestException(error.message);
     }
   }
 }
-

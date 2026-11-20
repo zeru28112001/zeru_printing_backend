@@ -1,11 +1,16 @@
-import { Injectable, PipeTransform, BadRequestException } from '@nestjs/common';
+import { PipeTransform, BadRequestException } from '@nestjs/common';
 
-@Injectable()
 export class ParseStringPipe implements PipeTransform<string> {
+  private readonly valueName: string;
+  private readonly allowedValues?: string[];
+
   constructor(
-    private readonly valueName: string,
-    private readonly allowedValues?: string[],
-  ) {}
+    valueName: string = 'value',
+    allowedValues?: string[],
+  ) {
+    this.valueName = valueName;
+    this.allowedValues = allowedValues;
+  }
 
   transform(value: any): any {
     try {
@@ -24,4 +29,3 @@ export class ParseStringPipe implements PipeTransform<string> {
     }
   }
 }
-

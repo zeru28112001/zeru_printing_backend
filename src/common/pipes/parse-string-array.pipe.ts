@@ -1,18 +1,21 @@
-import { Injectable, PipeTransform, BadRequestException } from '@nestjs/common';
+import { PipeTransform, BadRequestException } from '@nestjs/common';
 
-@Injectable()
 export class ParseStringArrayPipe implements PipeTransform<
   string | string[],
   string[]
 > {
-  constructor(
-    private readonly valueName: string,
-    private readonly allowedValues?: string[],
-  ) {}
+  private readonly valueName: string;
+  private readonly allowedValues?: string[];
 
-  transform(value: any): any {
-    const formatErrorMessage = `Invalid array format of ${this.valueName}`;
-    const valueErrorMessage = `Invalid value in ${this.valueName}, ${this.valueName} must be array of the following values: ${this.allowedValues}`;
+  constructor(
+    valueName: string = 'value',
+    allowedValues?: string[],
+  ) {
+    this.valueName = valueName;
+    this.allowedValues = allowedValues;
+  }
+
+  transform(value: any): string[] {
     try {
       if (value === undefined || value === null) {
         return value;
@@ -22,45 +25,32 @@ export class ParseStringArrayPipe implements PipeTransform<
 
       if (Array.isArray(value)) {
         parsedValue = value;
+      } else if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          parsedValue = Array.isArray(parsed) ? parsed : [value];
+        } catch {
+          parsedValue = value.split(',').map((item) => item.trim());
+        }
       } else {
-        const trimmedValue = value.trim();
+        throw new Error(
+          `Invalid ${this.valueName} value, ${this.valueName} must be an array of strings or comma-separated string`,
+        );
+      }
 
-        if (trimmedValue.startsWith('[')) {
-          const jsonParsedValue = JSON.parse(trimmedValue);
-          if (!Array.isArray(jsonParsedValue)) {
-            throw new Error(formatErrorMessage);
+      if (this.allowedValues) {
+        for (const item of parsedValue) {
+          if (!this.allowedValues.includes(item)) {
+            throw new Error(
+              `Invalid ${this.valueName} value '${item}', allowed values are: ${this.allowedValues.join(', ')}`,
+            );
           }
-          parsedValue = jsonParsedValue;
-        } else if (trimmedValue.includes(',')) {
-          parsedValue = trimmedValue
-            .split(',')
-            .map((item: string) => item.trim())
-            .filter(Boolean);
-        } else {
-          parsedValue = [trimmedValue];
         }
       }
 
-      if (!Array.isArray(parsedValue)) {
-        throw new Error(formatErrorMessage);
-      }
-
-      if (parsedValue.length === 0) {
-        return parsedValue;
-      }
-
-      const filteredArray = parsedValue.filter(
-        (item: any) => !this.allowedValues || this.allowedValues.includes(item),
-      );
-
-      if (this.allowedValues && filteredArray.length !== parsedValue.length) {
-        throw new Error(valueErrorMessage);
-      }
-
-      return filteredArray.map((item: any) => String(item));
+      return parsedValue;
     } catch (error: any) {
       throw new BadRequestException(error.message);
     }
   }
 }
-

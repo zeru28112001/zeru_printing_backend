@@ -1,9 +1,12 @@
-import { Injectable, PipeTransform, BadRequestException } from '@nestjs/common';
+import { PipeTransform, BadRequestException } from '@nestjs/common';
 import { isNumber } from 'class-validator';
 
-@Injectable()
 export class ParseNumberPipe implements PipeTransform<number> {
-  constructor(private readonly valueName: string) {}
+  private readonly valueName: string;
+
+  constructor(valueName: string = 'value') {
+    this.valueName = valueName;
+  }
 
   transform(value: any): any {
     const errorMessage = `Invalid ${this.valueName} value, ${this.valueName} must be number`;
@@ -22,4 +25,3 @@ export class ParseNumberPipe implements PipeTransform<number> {
     }
   }
 }
-

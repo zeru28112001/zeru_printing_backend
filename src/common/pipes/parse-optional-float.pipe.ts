@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
+import { BadRequestException, PipeTransform } from '@nestjs/common';
 
 /**
  * Parses an optional float query/param value.
@@ -6,11 +6,14 @@ import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
  * - a valid numeric string → the parsed `number`
  * - any other non-numeric string → `400 Bad Request`
  */
-@Injectable()
 export class ParseOptionalFloatPipe
   implements PipeTransform<string | undefined, number | undefined>
 {
-  constructor(private readonly valueName = 'value') {}
+  private readonly valueName: string;
+
+  constructor(valueName: string = 'value') {
+    this.valueName = valueName;
+  }
 
   transform(value?: string): number | undefined {
     if (value === undefined || value === null || value === '') {
