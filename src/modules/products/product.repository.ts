@@ -12,7 +12,7 @@ export class ProductRepository {
     return this.prisma.product.findMany({
       where: {
         isActive: true,
-        deletedAt: null,
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
         ...(filters?.gsm ? { gsm: filters.gsm } : {}),
         ...(filters?.sizingType ? { sizingType: filters.sizingType } : {}),
       },
@@ -56,13 +56,19 @@ export class ProductRepository {
 
   async findById(id: string): Promise<Product | null> {
     return this.prisma.product.findFirst({
-      where: { id, deletedAt: null },
+      where: {
+        id,
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
+      },
     });
   }
 
   async findBySlug(slug: string): Promise<Product | null> {
     return this.prisma.product.findFirst({
-      where: { slug: slug.toLowerCase(), deletedAt: null },
+      where: {
+        slug: slug.toLowerCase(),
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
+      },
     });
   }
 
