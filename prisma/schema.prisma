@@ -7,10 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==========================================
+// ENUMS
+// ==========================================
+
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
-  USER
-  SHOP
+  PRINT_OPERATOR
+  SALES
 }
 
 enum SizingType {
@@ -21,98 +26,151 @@ enum SizingType {
 enum PlacementSide {
   FRONT
   BACK
+  SLEEVE_LEFT
+  SLEEVE_RIGHT
+  COLLAR
 }
 
 enum OrderType {
-  CUSTOM
+  CUSTOM_DTF
   READY_TO_WEAR
-}
-
-enum PaymentMethod {
-  KBZPAY
-  WAVEPAY
-  COD
+  BULK_WHOLESALE
 }
 
 enum OrderStatus {
+  DRAFT
   PENDING_DEPOSIT
   DEPOSIT_CONFIRMED
+  IN_PREFLIGHT
   IN_PRODUCTION
+  QC_COMPLETED
+  PENDING_FINAL_PAYMENT
   READY_FOR_DELIVERY
+  DISPATCHED
   COMPLETED
   CANCELLED
+  REFUNDED
 }
 
-type ProductColor {
-  name       String
-  hex        String
-  frontImage String?
-  backImage  String?
-  inStock    Boolean  @default(true)
+enum PaymentChannelType {
+  MOBILE_WALLET
+  BANK_TRANSFER
+  DIRECT_QR
+  CASH
 }
 
-type SizeChartEntry {
-  size       String
-  shoulder   Float
-  chest      Float
-  length     Float
-  sleeve     Float
-  neckWidth  Float
+enum PaymentType {
+  DEPOSIT           // Initial 1/3 (33.33%) down-payment
+  FINAL_BALANCE     // Remaining 2/3 balance before delivery
+  FULL_PAYMENT      // 100% upfront
+  REFUND            // Refund to customer
 }
 
-type CustomerInfo {
-  name            String
-  phone           String
-  city            String?
-  township        String?
-  deliveryAddress String
-  viberOrTelegram String?
-  notes           String?
+enum PaymentStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
 }
 
-type SizeQuantity {
-  size     String
-  quantity Int
+enum StockMovementType {
+  INBOUND_SUPPLIER
+  ORDER_RESERVATION
+  ORDER_FULFILLMENT
+  PRINT_DAMAGE_SPOILAGE
+  MANUAL_AUDIT_ADJUSTMENT
+  RETURN_RESTOCK
 }
 
-type OrderPlacement {
-  placementCode           String
-  placementName           String
-  side                    String
-  artworkUrl              String
-  artworkDriveFileId      String?
-  artworkDriveWebViewLink String?
-  widthInches             Float?
-  heightInches            Float?
-  costMmk                 Float
+enum ProductionJobStatus {
+  QUEUED
+  PRINTING_FILM
+  CURING_POWDER
+  HEAT_PRESSING
+  QC_INSPECTION
+  COMPLETED
+  REPRINT_FAILED
 }
 
-type OrderItem {
-  productId           String
-  productName         String
-  gsm                 Int?
-  fabricType          String?
-  color               String
-  sizeBreakdown       SizeQuantity[]
-  totalQuantity       Int
-  placements          OrderPlacement[]
-  unitGarmentPriceMmk Float
-  unitPrintPriceMmk   Float
-  itemTotalMmk        Float
-}
+// ==========================================
+// 1. AUTH & USERS
+// ==========================================
 
 model User {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  email        String    @unique
-  passwordHash String
-  name         String?
-  role         UserRole  @default(USER)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  id                   String              @id @default(auto()) @map("_id") @db.ObjectId
+  email                String              @unique
+  passwordHash         String
+  name                 String
+  role                 UserRole            @default(ADMIN)
+  isActive             Boolean             @default(true)
+  phone                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  deletedAt            DateTime?
+
+  verifiedPayments     Payment[]           @relation("PaymentVerifier")
+  productionJobs       ProductionJob[]     @relation("OperatorJobs")
+  auditLogs            OrderAuditLog[]     @relation("UserAuditLogs")
+  inventoryAdjustments InventoryMovement[] @relation("InventoryAuditor")
 
   @@map("users")
+}
+
+// ==========================================
+// 2. CONFIGURATION & PAYMENT METHODS
+// ==========================================
+
+model StoreSystemSettings {
+  id                        String   @id @default(auto()) @map("_id") @db.ObjectId
+  storeName                 String   @default("Zeru Printing Service")
+  depositPercentage         Float    @default(33.33) // ~1/3 down payment
+  minOrderQuantity          Int      @default(1)
+  standardLeadDays          Int      @default(3)
+  rushLeadDays              Int      @default(1)
+  rushFeePercentage         Float    @default(20.0)
+  contactPhone              String?
+  contactViber              String?
+  contactTelegram           String?
+  telegramBotToken          String?
+  telegramAdminChatId       String?
+  googleDriveParentFolderId String?
+  maintenanceMode           Boolean  @default(false)
+  updatedAt                 DateTime @updatedAt
+
+  @@map("store_system_settings")
+}
+
+model PaymentMethod {
+  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
+  code               String             @unique // kbzpay_personal, wavepay_personal, etc.
+  name               String             // KBZPay, WavePay, AYA Pay
+  type               PaymentChannelType @default(MOBILE_WALLET)
+  accountName        String             // Account holder name
+  accountNumber      String             // Phone number or Bank Account
+  bankBranch         String?
+  qrCodeImageUrl     String?
+  qrCodeDriveFileId  String?
+  instructions       String?
+  isActive           Boolean            @default(true)
+  displayOrder       Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  payments           Payment[]
+
+  @@map("payment_methods")
+}
+
+// ==========================================
+// 3. CATALOG & SKU INVENTORY
+// ==========================================
+
+type SizeChartEntry {
+  size      String
+  shoulder  Float?
+  chest     Float?
+  length    Float?
+  sleeve    Float?
+  neckWidth Float?
 }
 
 model Product {
@@ -120,78 +178,327 @@ model Product {
   name           String
   slug           String           @unique
   description    String?
-  gsm            Int              // 240, 290, 350
-  fabricType     String           // e.g. 100% Combed Cotton, Air Layer Cotton Blend
-  basePrice      Float            // in MMK
+  gsm            Int?             @default(240) // 240, 290, 350
+  fabricType     String?          // 100% Combed Cotton, Air Layer Blend
+  basePriceMmk   Float?           @default(18000)
   sizingType     SizingType       @default(SIZED)
+  sizeChart      SizeChartEntry[]
   isCustomizable Boolean          @default(true)
   isReadyToWear  Boolean          @default(false)
   isActive       Boolean          @default(true)
-  colors         ProductColor[]
-  sizeChart      SizeChartEntry[] // in inches (frontend converts to CM if needed)
-  availableSizes String[]         // ["S", "M", "L", "XL", "2XL"] or ["Free Size"]
   featuredImage  String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   deletedAt      DateTime?
 
+  variants       ProductVariant[]
+
   @@map("products")
 }
 
+model ProductVariant {
+  id                 String              @id @default(auto()) @map("_id") @db.ObjectId
+  productId          String              @db.ObjectId
+  sku                String              @unique // e.g. TEE-240-BLK-XL
+  colorName          String              // Black, White, Charcoal, Cream
+  colorHex           String              // #111111, #FFFFFF
+  size               String              // S, M, L, XL, 2XL, Free Size
+  frontBlankImage    String?
+  backBlankImage     String?
+  additionalCostMmk  Float?              @default(0)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  product            Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stock              InventoryStock?
+  inventoryMovements InventoryMovement[]
+  orderItems         OrderItem[]
+
+  @@map("product_variants")
+}
+
+model InventoryStock {
+  id                    String         @id @default(auto()) @map("_id") @db.ObjectId
+  variantId             String         @unique @db.ObjectId
+  quantityOnHand        Int?           @default(0)
+  quantityReserved      Int?           @default(0)
+  safetyStockThreshold  Int?           @default(5)
+  updatedAt             DateTime       @updatedAt
+
+  variant               ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_stocks")
+}
+
+model InventoryMovement {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  variantId       String            @db.ObjectId
+  movementType    StockMovementType
+  quantityDelta   Int               // Positive for stock in, negative for deduction
+  balanceAfter    Int
+  referenceId     String?           // Order ID or Inbound PO #
+  createdById     String?           @db.ObjectId
+  notes           String?
+  createdAt       DateTime          @default(now())
+
+  variant         ProductVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdBy       User?             @relation("InventoryAuditor", fields: [createdById], references: [id])
+
+  @@map("inventory_movements")
+}
+
+// ==========================================
+// 4. CUSTOMERS & CRM
+// ==========================================
+
+model Customer {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  phone           String            @unique
+  email           String?
+  viberNumber     String?
+  telegramUsername String?
+  totalSpentMmk   Float             @default(0)
+  ordersCount     Int               @default(0)
+  internalNotes   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  addresses       CustomerAddress[]
+  orders          Order[]
+  artworkAssets   ArtworkAsset[]
+
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  customerId       String   @db.ObjectId
+  recipientName    String
+  phone            String
+  city             String   // Yangon, Mandalay, etc.
+  township         String   // Kamayut, Sanchaung, etc.
+  detailedAddress  String
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders           Order[]
+
+  @@map("customer_addresses")
+}
+
+// ==========================================
+// 5. DTF PLACEMENTS & ARTWORK ASSETS
+// ==========================================
+
 model PrintPlacement {
-  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  code               String        @unique // full_front, full_back, left_chest, etc.
-  name               String        // Full Front, Left Chest, etc.
-  side               PlacementSide // FRONT or BACK
-  isDefaultShown     Boolean       @default(false) // true for full_front & full_back
-  defaultWidthInches Float
-  defaultHeightInches Float
-  baseCostMmk        Float
-  isActive           Boolean       @default(true)
-  sortOrder          Int           @default(0)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  code                String               @unique // full_front, full_back, left_chest
+  name                String               // Full Front, Full Back
+  side                PlacementSide        @default(FRONT)
+  isDefaultShown      Boolean              @default(false)
+  maxWidthInches      Float?
+  maxHeightInches     Float?
+  baseCostMmk         Float?               @default(2500)
+  isActive            Boolean              @default(true)
+  sortOrder           Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  orderCustomizations OrderCustomization[]
 
   @@map("print_placements")
 }
 
+model ArtworkAsset {
+  id                   String               @id @default(auto()) @map("_id") @db.ObjectId
+  customerId           String?              @db.ObjectId
+  originalFileName     String
+  fileSize             Int
+  mimeType             String
+  driveFileId          String?
+  driveWebViewLink     String?
+  driveDownloadLink    String?
+  localFilePath        String?
+  widthPixels          Int?
+  heightPixels         Int?
+  dpi                  Int?                 @default(300)
+  hasTransparency      Boolean              @default(true)
+  colorSpace           String?              @default("RGB")
+  isApprovedForPrint   Boolean              @default(false)
+  rejectionReason      String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  customer             Customer?            @relation(fields: [customerId], references: [id])
+  orderCustomizations  OrderCustomization[]
+
+  @@map("artwork_assets")
+}
+
+// ==========================================
+// 6. ORDERS & CUSTOMIZATIONS
+// ==========================================
+
 model Order {
-  id                         String         @id @default(auto()) @map("_id") @db.ObjectId
-  orderNumber                String         @unique // e.g. ZP-20261120-XXXX
-  orderType                  OrderType      @default(CUSTOM)
-  status                     OrderStatus    @default(PENDING_DEPOSIT)
-  customer                   CustomerInfo
-  items                      OrderItem[]
-  totalAmountMmk             Float
-  depositRequiredMmk         Float          // 1/3 (33%) for CUSTOM, 0 for READY_TO_WEAR COD
-  depositPaidMmk             Float          @default(0)
-  paymentMethod              PaymentMethod  @default(KBZPAY)
-  paymentSlipUrl             String?
-  paymentSlipDriveFileId     String?
-  paymentSlipDriveWebViewLink String?
-  adminNotes                 String?
-  createdAt                  DateTime       @default(now())
-  updatedAt                  DateTime       @updatedAt
+  id                  String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber         String          @unique // e.g. ZP-202611-0012
+  customerId          String?         @db.ObjectId
+  shippingAddressId   String?         @db.ObjectId
+  orderType           OrderType       @default(CUSTOM_DTF)
+  status              OrderStatus     @default(PENDING_DEPOSIT)
+  
+  subtotalMmk         Float?          @default(0)
+  discountMmk         Float?          @default(0)
+  rushFeeMmk          Float?          @default(0)
+  shippingFeeMmk      Float?          @default(0)
+  totalAmountMmk      Float?          @default(0)
+  
+  depositRequiredMmk  Float?          @default(0)
+  depositPaidMmk      Float?          @default(0)
+  finalPaidMmk        Float?          @default(0)
+  
+  isRushOrder         Boolean         @default(false)
+  customerNotes       String?
+  adminNotes          String?
+  
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  customer            Customer?       @relation(fields: [customerId], references: [id])
+  shippingAddress     CustomerAddress? @relation(fields: [shippingAddressId], references: [id])
+  items               OrderItem[]
+  payments            Payment[]
+  shipments           Shipment[]
+  auditLogs           OrderAuditLog[]
 
   @@map("orders")
 }
 
-model StoreSettings {
-  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  depositPercentage     Float    @default(33.33) // ~1/3
-  kbzPayAccountName     String?
-  kbzPayPhone           String?
-  kbzPayQrUrl           String?
-  wavePayAccountName    String?
-  wavePayPhone          String?
-  wavePayQrUrl          String?
-  adminContactPhone     String?
-  adminViberPhone       String?
-  adminTelegramUsername String?
-  telegramBotToken      String?
-  telegramChatId        String?
-  googleDriveFolderId   String?
-  updatedAt             DateTime @updatedAt
+model OrderItem {
+  id                 String               @id @default(auto()) @map("_id") @db.ObjectId
+  orderId            String               @db.ObjectId
+  variantId          String               @db.ObjectId
+  quantity           Int                  @default(1)
+  unitGarmentCostMmk Float?               @default(0)
+  unitPrintCostMmk   Float?               @default(0)
+  itemTotalMmk       Float?               @default(0)
+  createdAt          DateTime             @default(now())
 
-  @@map("store_settings")
+  order              Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant            ProductVariant       @relation(fields: [variantId], references: [id])
+  customizations     OrderCustomization[]
+
+  @@map("order_items")
+}
+
+model OrderCustomization {
+  id                     String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderItemId            String          @db.ObjectId
+  placementId            String          @db.ObjectId
+  artworkAssetId         String?         @db.ObjectId
+  appliedWidthInches     Float?
+  appliedHeightInches    Float?
+  printCostMmk           Float
+  mockupPreviewUrl       String?
+  productionJobId        String?         @db.ObjectId
+  createdAt              DateTime        @default(now())
+
+  orderItem              OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  placement              PrintPlacement  @relation(fields: [placementId], references: [id])
+  artworkAsset           ArtworkAsset?   @relation(fields: [artworkAssetId], references: [id])
+  productionJob          ProductionJob?  @relation(fields: [productionJobId], references: [id])
+
+  @@map("order_customizations")
+}
+
+// ==========================================
+// 7. PRODUCTION & GANG SHEETS
+// ==========================================
+
+model ProductionJob {
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  sheetCode           String               @unique // GANG-202611-001
+  rollLengthMeters    Float?
+  assignedPrinter     String?              // Machine 1 (Epson i3200 DTF)
+  operatorId          String?              @db.ObjectId
+  status              ProductionJobStatus  @default(QUEUED)
+  gangSheetFileUrl    String?
+  gangSheetDriveId    String?
+  reprintCount        Int                  @default(0)
+  reprintReason       String?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  operator            User?                @relation("OperatorJobs", fields: [operatorId], references: [id])
+  customizations      OrderCustomization[]
+
+  @@map("production_jobs")
+}
+
+// ==========================================
+// 8. FINANCE, LOGISTICS & AUDITING
+// ==========================================
+
+model Payment {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderId              String        @db.ObjectId
+  paymentMethodId      String        @db.ObjectId
+  paymentType          PaymentType   @default(DEPOSIT)
+  amountMmk            Float
+  transactionReference String?       // Customer transaction last 4 digits / TxID
+  slipImageUrl         String?       // Screenshot of transfer
+  slipDriveFileId      String?
+  slipDriveLink        String?
+  status               PaymentStatus @default(PENDING_VERIFICATION)
+  verifiedById         String?       @db.ObjectId
+  verifiedAt           DateTime?
+  rejectionReason      String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  order                Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod        PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  verifiedBy           User?         @relation("PaymentVerifier", fields: [verifiedById], references: [id])
+
+  @@map("payments")
+}
+
+model Shipment {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  orderId              String    @db.ObjectId
+  courierName          String    // Royal Express, Ninja Van, MGL, Direct Rider
+  trackingWaybill      String?   // Courier waybill / tracking number
+  deliveryFeeMmk       Float     @default(0)
+  dispatchedAt         DateTime?
+  deliveredAt          DateTime?
+  recipientProofUrl    String?
+  notes                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  order                Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("shipments")
+}
+
+model OrderAuditLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String   @db.ObjectId
+  userId    String?  @db.ObjectId
+  action    String   // e.g. STATUS_UPDATED, PAYMENT_VERIFIED, ITEM_ADDED
+  oldState  String?  // JSON snapshot or previous status
+  newState  String?  // JSON snapshot or new status
+  notes     String?
+  createdAt DateTime @default(now())
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user      User?    @relation("UserAuditLogs", fields: [userId], references: [id])
+
+  @@map("order_audit_logs")
 }

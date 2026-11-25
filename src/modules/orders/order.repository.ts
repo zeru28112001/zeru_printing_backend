@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Order, OrderStatus, OrderType, Prisma } from '@prisma/client';
+import { OrderStatus, OrderType, Prisma } from '@prisma/client';
 import { getPagination } from '../../shared/pagination/pagination.utils.js';
 import { PrismaService } from '../../shared/prisma/prisma.service.js';
 
@@ -7,29 +7,136 @@ import { PrismaService } from '../../shared/prisma/prisma.service.js';
 export class OrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.OrderCreateInput): Promise<Order> {
-    return this.prisma.order.create({ data });
+  async create(data: Prisma.OrderCreateInput) {
+    return this.prisma.order.create({
+      data,
+      include: {
+        customer: true,
+        shippingAddress: true,
+        items: {
+          include: {
+            variant: {
+              include: {
+                product: true,
+              },
+            },
+            customizations: {
+              include: {
+                placement: true,
+                artworkAsset: true,
+              },
+            },
+          },
+        },
+        payments: {
+          include: {
+            paymentMethod: true,
+          },
+        },
+      },
+    });
   }
 
-  async findById(id: string): Promise<Order | null> {
+  async findById(id: string) {
     return this.prisma.order.findUnique({
       where: { id },
+      include: {
+        customer: true,
+        shippingAddress: true,
+        items: {
+          include: {
+            variant: {
+              include: {
+                product: true,
+              },
+            },
+            customizations: {
+              include: {
+                placement: true,
+                artworkAsset: true,
+              },
+            },
+          },
+        },
+        payments: {
+          include: {
+            paymentMethod: true,
+          },
+        },
+        shipments: true,
+        auditLogs: true,
+      },
     });
   }
 
-  async findByOrderNumber(orderNumber: string): Promise<Order | null> {
+  async findByOrderNumber(orderNumber: string) {
     return this.prisma.order.findUnique({
       where: { orderNumber },
+      include: {
+        customer: true,
+        shippingAddress: true,
+        items: {
+          include: {
+            variant: {
+              include: {
+                product: true,
+              },
+            },
+            customizations: {
+              include: {
+                placement: true,
+                artworkAsset: true,
+              },
+            },
+          },
+        },
+        payments: {
+          include: {
+            paymentMethod: true,
+          },
+        },
+        shipments: true,
+      },
     });
   }
 
-  async trackOrder(orderNumber: string, phone: string): Promise<Order | null> {
+  async trackOrder(orderNumber: string, phone: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { phone },
+    });
+
+    if (!customer) {
+      return null;
+    }
+
     return this.prisma.order.findFirst({
       where: {
         orderNumber,
-        customer: {
-          is: { phone },
+        customerId: customer.id,
+      },
+      include: {
+        customer: true,
+        shippingAddress: true,
+        items: {
+          include: {
+            variant: {
+              include: {
+                product: true,
+              },
+            },
+            customizations: {
+              include: {
+                placement: true,
+              },
+            },
+          },
         },
+        payments: {
+          include: {
+            paymentMethod: true,
+          },
+        },
+        shipments: true,
       },
     });
   }
@@ -60,6 +167,29 @@ export class OrderRepository {
         where,
         skip,
         take,
+        include: {
+          customer: true,
+          shippingAddress: true,
+          items: {
+            include: {
+              variant: {
+                include: {
+                  product: true,
+                },
+              },
+              customizations: {
+                include: {
+                  placement: true,
+                },
+              },
+            },
+          },
+          payments: {
+            include: {
+              paymentMethod: true,
+            },
+          },
+        },
         orderBy: [{ createdAt: 'desc' }],
       }),
       this.prisma.order.count({ where }),
@@ -72,13 +202,24 @@ export class OrderRepository {
     id: string,
     status: OrderStatus,
     data?: { depositPaidMmk?: number; adminNotes?: string },
-  ): Promise<Order> {
+  ) {
     return this.prisma.order.update({
       where: { id },
       data: {
         status,
         ...(data?.depositPaidMmk !== undefined ? { depositPaidMmk: data.depositPaidMmk } : {}),
         ...(data?.adminNotes !== undefined ? { adminNotes: data.adminNotes } : {}),
+      },
+      include: {
+        customer: true,
+        shippingAddress: true,
+        items: {
+          include: {
+            variant: true,
+            customizations: true,
+          },
+        },
+        payments: true,
       },
     });
   }

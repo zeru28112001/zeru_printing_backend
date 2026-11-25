@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../common/guards/roles.guard.js';
@@ -60,7 +61,7 @@ export class ProductController {
 
   @Get('admin/list')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Admin list all products with pagination' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -78,7 +79,7 @@ export class ProductController {
 
   @Post('admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a new t-shirt product' })
   create(@Body() dto: CreateProductDto) {
@@ -87,7 +88,7 @@ export class ProductController {
 
   @Patch('admin/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update t-shirt product' })
   update(
@@ -99,7 +100,7 @@ export class ProductController {
 
   @Patch('admin/:id/toggle')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Toggle product active/inactive' })
   toggleStatus(
@@ -111,7 +112,7 @@ export class ProductController {
 
   @Delete('admin/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Soft delete a product' })
   delete(@Param('id', ParseStringPipe) id: string) {

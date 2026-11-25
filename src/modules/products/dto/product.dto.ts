@@ -45,25 +45,30 @@ export class SizeChartEntryDto {
   @IsNotEmpty()
   size: string;
 
-  @ApiProperty({ example: 19.5, description: 'Shoulder width in inches' })
+  @ApiPropertyOptional({ example: 19.5, description: 'Shoulder width in inches' })
   @IsNumber()
-  shoulder: number;
+  @IsOptional()
+  shoulder?: number;
 
-  @ApiProperty({ example: 42.0, description: 'Chest width in inches' })
+  @ApiPropertyOptional({ example: 42.0, description: 'Chest width in inches' })
   @IsNumber()
-  chest: number;
+  @IsOptional()
+  chest?: number;
 
-  @ApiProperty({ example: 28.5, description: 'Body length in inches' })
+  @ApiPropertyOptional({ example: 28.5, description: 'Body length in inches' })
   @IsNumber()
-  length: number;
+  @IsOptional()
+  length?: number;
 
-  @ApiProperty({ example: 9.0, description: 'Sleeve length in inches' })
+  @ApiPropertyOptional({ example: 9.0, description: 'Sleeve length in inches' })
   @IsNumber()
-  sleeve: number;
+  @IsOptional()
+  sleeve?: number;
 
-  @ApiProperty({ example: 7.5, description: 'Neck opening width in inches' })
+  @ApiPropertyOptional({ example: 7.5, description: 'Neck opening width in inches' })
   @IsNumber()
-  neckWidth: number;
+  @IsOptional()
+  neckWidth?: number;
 }
 
 export class CreateProductDto {
@@ -92,10 +97,17 @@ export class CreateProductDto {
   @IsNotEmpty()
   fabricType: string;
 
-  @ApiProperty({ example: 18000, description: 'Base blank shirt price in MMK' })
+  @ApiPropertyOptional({ example: 18000, description: 'Base blank shirt price in MMK' })
   @IsNumber()
   @Min(0)
-  basePrice: number;
+  @IsOptional()
+  basePrice?: number;
+
+  @ApiPropertyOptional({ example: 18000, description: 'Base blank shirt price in MMK' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  basePriceMmk?: number;
 
   @ApiPropertyOptional({ enum: ['SIZED', 'FREE_SIZE'], default: 'SIZED' })
   @IsEnum(['SIZED', 'FREE_SIZE'])
@@ -152,6 +164,11 @@ export class UpdateProductDto {
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
+  slug?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
   description?: string;
 
   @ApiPropertyOptional()
@@ -168,6 +185,11 @@ export class UpdateProductDto {
   @IsNumber()
   @IsOptional()
   basePrice?: number;
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  @IsOptional()
+  basePriceMmk?: number;
 
   @ApiPropertyOptional({ enum: ['SIZED', 'FREE_SIZE'] })
   @IsEnum(['SIZED', 'FREE_SIZE'])

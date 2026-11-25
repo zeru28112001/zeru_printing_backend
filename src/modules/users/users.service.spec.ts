@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UsersService } from './users.service.js';
 import { UserRepository } from './user.repository.js';
 import { NotFoundException } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -19,8 +20,9 @@ describe('UsersService', () => {
       id: 'user-1',
       email: 'test@example.com',
       name: 'Test',
-      role: 'USER',
+      role: UserRole.ADMIN,
       isActive: true,
+      phone: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,
@@ -36,8 +38,9 @@ describe('UsersService', () => {
       id: 'user-1',
       email: 'test@example.com',
       name: 'Test',
-      role: 'USER',
+      role: UserRole.ADMIN,
       isActive: false,
+      phone: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,

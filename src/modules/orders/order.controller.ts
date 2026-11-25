@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import type { OrderStatus, OrderType } from '@prisma/client';
+import { type OrderStatus, type OrderType, UserRole } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../common/guards/roles.guard.js';
@@ -84,7 +84,7 @@ export class OrderController {
 
   @Get('admin/list')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Admin list all customer orders' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -104,7 +104,7 @@ export class OrderController {
 
   @Get('admin/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Admin get full order details by ID' })
   findById(@Param('id', ParseStringPipe) id: string) {
@@ -113,7 +113,7 @@ export class OrderController {
 
   @Patch('admin/:id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Admin update order status & deposit confirmation' })
   updateStatus(

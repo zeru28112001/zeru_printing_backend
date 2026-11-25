@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { StoreSettings } from '@prisma/client';
+import type { StoreSystemSettings } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service.js';
 import type { UpdateSettingsDto } from './dto/settings.dto.js';
 
@@ -7,45 +7,47 @@ import type { UpdateSettingsDto } from './dto/settings.dto.js';
 export class SettingsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSettings(): Promise<StoreSettings> {
-    const existing = await this.prisma.storeSettings.findFirst();
+  async getSettings(): Promise<StoreSystemSettings> {
+    const existing = await this.prisma.storeSystemSettings.findFirst();
     if (existing) {
       return existing;
     }
 
     // Default settings
-    return this.prisma.storeSettings.create({
+    return this.prisma.storeSystemSettings.create({
       data: {
+        storeName: 'Zeru Printing Service',
         depositPercentage: 33.33,
-        kbzPayAccountName: 'Zeru Printing Service',
-        kbzPayPhone: '09798765432',
-        wavePayAccountName: 'Zeru Printing Service',
-        wavePayPhone: '09798765432',
-        adminContactPhone: '09798765432',
-        adminViberPhone: '09798765432',
-        adminTelegramUsername: 'zeru_printing',
+        minOrderQuantity: 1,
+        standardLeadDays: 3,
+        rushLeadDays: 1,
+        rushFeePercentage: 20.0,
+        contactPhone: '09798765432',
+        contactViber: '09798765432',
+        contactTelegram: 'zeru_printing',
+        maintenanceMode: false,
       },
     });
   }
 
-  async updateSettings(dto: UpdateSettingsDto): Promise<StoreSettings> {
+  async updateSettings(dto: UpdateSettingsDto): Promise<StoreSystemSettings> {
     const settings = await this.getSettings();
-    return this.prisma.storeSettings.update({
+    return this.prisma.storeSystemSettings.update({
       where: { id: settings.id },
       data: {
+        ...(dto.storeName !== undefined ? { storeName: dto.storeName } : {}),
         ...(dto.depositPercentage !== undefined ? { depositPercentage: dto.depositPercentage } : {}),
-        ...(dto.kbzPayAccountName !== undefined ? { kbzPayAccountName: dto.kbzPayAccountName } : {}),
-        ...(dto.kbzPayPhone !== undefined ? { kbzPayPhone: dto.kbzPayPhone } : {}),
-        ...(dto.kbzPayQrUrl !== undefined ? { kbzPayQrUrl: dto.kbzPayQrUrl } : {}),
-        ...(dto.wavePayAccountName !== undefined ? { wavePayAccountName: dto.wavePayAccountName } : {}),
-        ...(dto.wavePayPhone !== undefined ? { wavePayPhone: dto.wavePayPhone } : {}),
-        ...(dto.wavePayQrUrl !== undefined ? { wavePayQrUrl: dto.wavePayQrUrl } : {}),
-        ...(dto.adminContactPhone !== undefined ? { adminContactPhone: dto.adminContactPhone } : {}),
-        ...(dto.adminViberPhone !== undefined ? { adminViberPhone: dto.adminViberPhone } : {}),
-        ...(dto.adminTelegramUsername !== undefined ? { adminTelegramUsername: dto.adminTelegramUsername } : {}),
+        ...(dto.minOrderQuantity !== undefined ? { minOrderQuantity: dto.minOrderQuantity } : {}),
+        ...(dto.standardLeadDays !== undefined ? { standardLeadDays: dto.standardLeadDays } : {}),
+        ...(dto.rushLeadDays !== undefined ? { rushLeadDays: dto.rushLeadDays } : {}),
+        ...(dto.rushFeePercentage !== undefined ? { rushFeePercentage: dto.rushFeePercentage } : {}),
+        ...(dto.contactPhone !== undefined ? { contactPhone: dto.contactPhone } : {}),
+        ...(dto.contactViber !== undefined ? { contactViber: dto.contactViber } : {}),
+        ...(dto.contactTelegram !== undefined ? { contactTelegram: dto.contactTelegram } : {}),
         ...(dto.telegramBotToken !== undefined ? { telegramBotToken: dto.telegramBotToken } : {}),
-        ...(dto.telegramChatId !== undefined ? { telegramChatId: dto.telegramChatId } : {}),
-        ...(dto.googleDriveFolderId !== undefined ? { googleDriveFolderId: dto.googleDriveFolderId } : {}),
+        ...(dto.telegramAdminChatId !== undefined ? { telegramAdminChatId: dto.telegramAdminChatId } : {}),
+        ...(dto.googleDriveParentFolderId !== undefined ? { googleDriveParentFolderId: dto.googleDriveParentFolderId } : {}),
+        ...(dto.maintenanceMode !== undefined ? { maintenanceMode: dto.maintenanceMode } : {}),
       },
     });
   }

@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env.schema.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { OrderModule } from './modules/orders/order.module.js';
+import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module.js';
 import { PlacementModule } from './modules/placements/placement.module.js';
 import { ProductModule } from './modules/products/product.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
@@ -37,6 +38,7 @@ import { PrismaModule } from './shared/prisma/prisma.module.js';
     PlacementModule,
     OrderModule,
     SettingsModule,
+    PaymentMethodsModule,
   ],
 })
 export class AppModule {}

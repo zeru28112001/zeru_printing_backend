@@ -1,7 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateSettingsDto {
+  @ApiPropertyOptional({ example: 'Zeru Printing Service' })
+  @IsString()
+  @IsOptional()
+  storeName?: string;
+
   @ApiPropertyOptional({ example: 33.33, description: 'Deposit percentage required upfront for custom orders' })
   @IsNumber()
   @Min(10)
@@ -9,50 +14,44 @@ export class UpdateSettingsDto {
   @IsOptional()
   depositPercentage?: number;
 
-  @ApiPropertyOptional({ example: 'Zeru DTF Printing' })
-  @IsString()
+  @ApiPropertyOptional({ example: 1 })
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  kbzPayAccountName?: string;
+  minOrderQuantity?: number;
+
+  @ApiPropertyOptional({ example: 3, description: 'Standard turnaround days' })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  standardLeadDays?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'Rush turnaround days' })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  rushLeadDays?: number;
+
+  @ApiPropertyOptional({ example: 20.0, description: 'Rush fee percentage' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  rushFeePercentage?: number;
 
   @ApiPropertyOptional({ example: '09798765432' })
   @IsString()
   @IsOptional()
-  kbzPayPhone?: string;
-
-  @ApiPropertyOptional({ example: 'https://example.com/kpay-qr.png' })
-  @IsString()
-  @IsOptional()
-  kbzPayQrUrl?: string;
-
-  @ApiPropertyOptional({ example: 'Zeru DTF Printing' })
-  @IsString()
-  @IsOptional()
-  wavePayAccountName?: string;
+  contactPhone?: string;
 
   @ApiPropertyOptional({ example: '09798765432' })
   @IsString()
   @IsOptional()
-  wavePayPhone?: string;
-
-  @ApiPropertyOptional({ example: 'https://example.com/wave-qr.png' })
-  @IsString()
-  @IsOptional()
-  wavePayQrUrl?: string;
-
-  @ApiPropertyOptional({ example: '09798765432' })
-  @IsString()
-  @IsOptional()
-  adminContactPhone?: string;
-
-  @ApiPropertyOptional({ example: '09798765432' })
-  @IsString()
-  @IsOptional()
-  adminViberPhone?: string;
+  contactViber?: string;
 
   @ApiPropertyOptional({ example: 'zeru_printing' })
   @IsString()
   @IsOptional()
-  adminTelegramUsername?: string;
+  contactTelegram?: string;
 
   @ApiPropertyOptional()
   @IsString()
@@ -62,10 +61,15 @@ export class UpdateSettingsDto {
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  telegramChatId?: string;
+  telegramAdminChatId?: string;
 
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  googleDriveFolderId?: string;
+  googleDriveParentFolderId?: string;
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  maintenanceMode?: boolean;
 }

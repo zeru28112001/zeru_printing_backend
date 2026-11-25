@@ -10,16 +10,15 @@ export class SettingsService {
   async getPublicPaymentInfo() {
     const s = await this.repository.getSettings();
     return ApiResponse.success({
+      storeName: s.storeName,
       depositPercentage: s.depositPercentage,
-      kbzPayAccountName: s.kbzPayAccountName,
-      kbzPayPhone: s.kbzPayPhone,
-      kbzPayQrUrl: s.kbzPayQrUrl,
-      wavePayAccountName: s.wavePayAccountName,
-      wavePayPhone: s.wavePayPhone,
-      wavePayQrUrl: s.wavePayQrUrl,
-      adminContactPhone: s.adminContactPhone,
-      adminViberPhone: s.adminViberPhone,
-      adminTelegramUsername: s.adminTelegramUsername,
+      standardLeadDays: s.standardLeadDays,
+      rushLeadDays: s.rushLeadDays,
+      rushFeePercentage: s.rushFeePercentage,
+      contactPhone: s.contactPhone,
+      contactViber: s.contactViber,
+      contactTelegram: s.contactTelegram,
+      maintenanceMode: s.maintenanceMode,
     });
   }
 
@@ -30,6 +29,6 @@ export class SettingsService {
 
   async updateSettings(dto: UpdateSettingsDto) {
     const updated = await this.repository.updateSettings(dto);
-    return ApiResponse.success(updated, 'Store settings updated successfully.');
+    return ApiResponse.success(updated, 'Store system settings updated successfully.');
   }
 }

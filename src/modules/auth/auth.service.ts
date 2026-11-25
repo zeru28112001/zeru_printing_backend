@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { ApiResponse } from '../../common/http/api-response.js';
 import type { EnvConfig } from '../../config/env.schema.js';
@@ -30,8 +31,8 @@ export class AuthService {
     const user = await this.repository.createUser({
       email: dto.email.toLowerCase(),
       passwordHash,
-      name: dto.name,
-      role: 'USER',
+      name: dto.name || 'Store Staff',
+      role: UserRole.ADMIN,
     });
 
     const token = this.generateToken(user.id);
@@ -84,7 +85,7 @@ export class AuthService {
           email: 'admin@zeruprinting.com',
           name: 'Zeru Admin',
           passwordHash: hash,
-          role: 'ADMIN',
+          role: UserRole.ADMIN,
         });
       }
     } else if (adminUser) {

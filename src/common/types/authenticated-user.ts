@@ -1,7 +1,8 @@
+import type { UserRole } from '@prisma/client';
+
 export interface AuthenticatedUser {
   id: string;
   email: string | null;
-  role: 'ADMIN' | 'USER' | 'SHOP';
-  username?: string | null;
+  role: UserRole;
+  name?: string | null;
 }
-
